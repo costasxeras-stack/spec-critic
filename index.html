@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Critic · an AI reviewer for product specs</title>
+<meta name="description" content="Paste a product spec and get the review a sharp engineering lead would give: scores, issues tied to exact lines, questions to answer and a rewrite of the problem statement. Uses your own Claude API key, or a labelled demo.">
+<meta name="theme-color" content="#ad1457">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ad1457'/%3E%3Cpath d='M9 8h11l4 4v12H9z' fill='white'/%3E%3Cpath d='M12 16l3 3 6-6' stroke='%23ad1457' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=1">
+<style>
+:root{--accent:#ad1457;--soft:#fce4ec}
+.intro .kicker{font:600 12.5px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lay{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.lay>.card{margin-top:0}
+textarea#spec{min-height:520px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
+.keyrow{display:grid;grid-template-columns:1fr 200px;gap:8px}
+.score{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;font-size:14px;margin-top:8px}
+.score .t{height:12px;border-radius:6px;background:#eeebe5;overflow:hidden}
+.score .t i{display:block;height:100%}
+.score .n{font-weight:700;text-align:right}
+.score small{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:-4px}
+.overall{display:flex;gap:16px;align-items:center}
+.overall b{font:700 54px/1 var(--display);color:var(--accent)}
+.issue{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;border-left:5px solid}
+.issue.high{border-left-color:#c62828}.issue.medium{border-left-color:#ef6c00}.issue.low{border-left-color:#8d8478}
+.issue .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.issue q{display:block;background:#faf8f4;border-radius:8px;padding:6px 10px;margin:8px 0;font-size:13.5px;quotes:none;font-family:ui-monospace,Menlo,monospace}
+.issue p{margin:6px 0 0;font-size:14.5px}
+.issue .fix{color:#2e7d32}
+.sev{font:600 11.5px var(--body);text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:2px 8px;color:#fff}
+.sev.high{background:#c62828}.sev.medium{background:#ef6c00}.sev.low{background:#8d8478}
+.qf{font-size:12px;font-weight:600;color:#c62828}
+.lint{display:grid;gap:6px;margin-top:8px}
+.lint div{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:14px}
+.lint i{font-style:normal;font-weight:700}
+.lint .ok i{color:#2e7d32}.lint .no i{color:#c62828}.lint .mid i{color:#ef6c00}
+mark{background:#ffe0b2;border-radius:3px;padding:0 2px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-3px}
+@keyframes s{to{transform:rotate(360deg)}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.rewrite{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:15px;margin-top:8px}
+@media (max-width:900px){.lay{grid-template-columns:1fr}textarea#spec{min-height:320px}}
+@media (max-width:600px){.keyrow{grid-template-columns:1fr}.score{grid-template-columns:110px 1fr 30px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./"><i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h6l2 2v8H4z" fill="white"/><path d="M6 8.5l1.5 1.5 3-3" stroke="#ad1457" stroke-width="1.5" fill="none"/></svg></i>Spec Critic</a>
+  <nav><a class="hide-sm" href="https://github.com/costasxeras-stack/spec-critic">GitHub</a><a href="https://kostasxeras.com/">Portfolio</a></nav>
+</div></header>
+<main class="wrap">
+  <section class="intro">
+    <span class="kicker">AI product · spec review</span>
+    <h1>The review your spec gets before engineering sees it.</h1>
+    <p>Paste a product spec. Spec Critic scores it on six things engineers and designers need, ties every issue to the exact line it is about, and lists the questions you will be asked in refinement. A rules-based check runs instantly in your browser. The AI review uses your own Claude API key.</p>
+  </section>
+
+  <div class="lay">
+    <section class="card">
+      <h2>Your spec</h2>
+      <div class="row" style="margin-top:0"><button class="btn small" type="button" id="load-sample">Load sample spec</button><button class="btn small ghost" type="button" id="clear">Clear</button><span class="note" id="wc" style="margin:0"></span></div>
+      <label for="spec" class="sr">Spec text</label>
+      <textarea id="spec" placeholder="Paste your spec, PRD or one-pager here. Markdown or plain text."></textarea>
+      <h2 style="margin-top:16px">Review mode</h2>
+      <div class="seg" role="group" aria-label="Mode"><button type="button" data-mode="live" aria-pressed="false">AI review with my key</button><button type="button" data-mode="demo" aria-pressed="true">Demo</button></div>
+      <div id="live-box" hidden>
+        <div class="keyrow" style="margin-top:10px">
+          <div><label for="key">Claude API key</label><input type="password" id="key" autocomplete="off" placeholder="sk-ant-..."></div>
+          <div><label for="model">Model</label><select id="model"><option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5</option><option value="claude-opus-5-5">Claude Opus 5.5</option><option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option></select></div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="remember"> Keep the key in this tab until I close it</label>
+        <p class="note">Your key goes straight from your browser to Anthropic's API. It is never sent anywhere else. Calls are billed to your account.</p>
+      </div>
+      <p class="note" id="demo-note">Demo mode shows a stored review of the sample spec, written in advance to show the output. It is not a live model call and does not change if you edit the text.</p>
+      <div class="row"><button class="btn primary" type="button" id="go">Review spec</button></div>
+    </section>
+
+    <div>
+      <section class="card" style="margin-top:0">
+        <h2>Instant check <small>rules, no AI</small></h2>
+        <p class="sub">Runs as you type. Looks for the sections a spec needs and for words that hide decisions.</p>
+        <div class="lint" id="lint"></div>
+      </section>
+      <section class="card" id="out" hidden>
+        <div class="banner" id="out-label"></div>
+        <div class="overall" style="margin-top:12px"><b id="ov">–</b><div><div style="font-weight:600" id="ov-t"></div><div class="sub" id="ov-s" style="margin:4px 0 0"></div></div></div>
+        <div id="scores"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card" id="out2" hidden>
+    <h2>Issues <small id="ic"></small></h2>
+    <div class="seg" role="group" aria-label="Filter" id="flt"><button type="button" data-f="all" aria-pressed="true">All</button><button type="button" data-f="high" aria-pressed="false">High</button><button type="button" data-f="medium" aria-pressed="false">Medium</button><button type="button" data-f="low" aria-pressed="false">Low</button></div>
+    <div id="issues"></div>
+    <h2 style="margin-top:22px">Questions you will be asked in refinement</h2>
+    <ol id="qs" class="sub" style="padding-left:20px;display:grid;gap:6px"></ol>
+    <h2 style="margin-top:22px">Problem statement, rewritten</h2>
+    <div class="rewrite" id="rw"></div>
+    <div class="row"><button class="btn" type="button" id="copy">Copy review as Markdown</button></div>
+  </section>
+
+  <section class="card">
+    <h2>How it works</h2>
+    <ul class="sub" style="padding-left:20px;display:grid;gap:6px">
+      <li>The instant check is plain JavaScript: it looks for headings such as problem, users, success metrics, non-goals, risks and open questions, counts acceptance criteria, and highlights vague words like "intuitive" or "TBD".</li>
+      <li>The AI review sends your spec and a fixed reviewer prompt to the Claude Messages API and asks for JSON: six scores with reasons, issues with an exact quote from the spec, questions and a rewrite.</li>
+      <li>Every quote the model returns is checked against your text. A quote that does not appear word for word is flagged as "not found in spec", so a made-up quote cannot pass as real.</li>
+      <li>Nothing is stored on a server. There is no server.</li>
+    </ul>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<footer><div class="wrap"><span>Spec Critic v0.1.0 by <a href="https://kostasxeras.com/">Konstantinos Xeras</a>, built with Claude (Anthropic). <a href="https://github.com/costasxeras-stack/spec-critic">Code and decisions on GitHub</a>.</span></div></footer>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function toast(m) { var t = $('toast'); t.textContent = m; t.classList.add('on'); setTimeout(function () { t.classList.remove('on'); }, 2200); }
+
+  var SAMPLE = [
+    '# Smart reorder for Pantry',
+    '',
+    '## Background',
+    'Pantry is a grocery list app. Users tell us that making the weekly list takes too long. We want to make it faster and easier using AI.',
+    '',
+    '## Solution',
+    'When a user opens a new list, we will suggest items they usually buy, based on their history. The suggestions should be intuitive and appear instantly. Users can accept all suggestions with one tap or remove the ones they do not want.',
+    '',
+    'We will also suggest new products they might like, so they discover more of the catalogue.',
+    '',
+    '## Requirements',
+    '- Show up to 20 suggested items at the top of a new list',
+    '- Suggestions must be accurate',
+    '- One-tap "Add all"',
+    '- Swipe to remove a suggestion',
+    '- Works offline, etc.',
+    '',
+    '## Success metrics',
+    '- Users love the feature',
+    '- Increase engagement',
+    '',
+    '## Timeline',
+    'Design in two weeks, build in four weeks, launch to everyone at the end of the quarter. Model choice TBD.'
+  ].join('\n');
+
+  // Stored demo review of SAMPLE, written by hand in advance. Quotes are exact lines from SAMPLE.
+  var DEMO = {
+    scores: [
+      { name: 'Problem clarity', score: 2, reason: 'The problem is a user complaint ("takes too long") with no size, no segment and no evidence.' },
+      { name: 'Users and context', score: 1, reason: 'No user segment is named. New users have no history, so the core feature does not work for them.' },
+      { name: 'Solution fit', score: 3, reason: 'Suggesting repeat items fits the problem. Suggesting new products serves the business, not the stated problem.' },
+      { name: 'Measurability', score: 1, reason: 'Neither success metric can be measured or has a target.' },
+      { name: 'Scope and edge cases', score: 2, reason: 'Offline, empty history and bad suggestions are mentioned or implied but not specified.' },
+      { name: 'Buildability', score: 2, reason: 'Accuracy, latency and model choice are open, yet the timeline is fixed.' }
+    ],
+    issues: [
+      { severity: 'high', section: 'Success metrics', quote: '- Users love the feature', problem: 'Not measurable. Nobody can tell at launch whether this was met.', fix: 'Pick one primary metric tied to the problem, such as median time to finish a weekly list, with a baseline and a target, for example from [baseline] to [target].' },
+      { severity: 'high', section: 'Requirements', quote: '- Suggestions must be accurate', problem: 'Accuracy is undefined, so engineering cannot test it and the team cannot agree when it is good enough.', fix: 'Define it: for example, share of suggested items the user keeps, with a minimum of [x]% before wider rollout.' },
+      { severity: 'high', section: 'Solution', quote: 'We will also suggest new products they might like, so they discover more of the catalogue.', problem: 'A second goal (discovery) is mixed into a feature meant to save time. Unfamiliar items in the list slow users down and hurt trust in the suggestions.', fix: 'Cut it from this spec, or make it a separate test with its own metric.' },
+      { severity: 'medium', section: 'Background', quote: 'Users tell us that making the weekly list takes too long.', problem: 'No evidence of how many users, how long it takes today, or how this was learned.', fix: 'Add the source (interviews, reviews, survey) and today\'s time to build a list: [current time].' },
+      { severity: 'medium', section: 'Solution', quote: 'The suggestions should be intuitive and appear instantly.', problem: '"Intuitive" and "instantly" are not testable.', fix: 'State a latency budget, for example suggestions visible within [n] ms of opening a list, and a usability check.' },
+      { severity: 'medium', section: 'Requirements', quote: '- Works offline, etc.', problem: '"Etc." hides requirements. Offline behaviour for a model-based feature needs a decision.', fix: 'Say what happens offline, for example last cached suggestions, and remove "etc."' },
+      { severity: 'medium', section: 'Timeline', quote: 'Model choice TBD.', problem: 'The biggest technical unknown is open while the launch date is fixed.', fix: 'Add a spike to choose the approach before committing to dates. Start with a simple frequency rule and compare.' },
+      { severity: 'low', section: 'Timeline', quote: 'Design in two weeks, build in four weeks, launch to everyone at the end of the quarter.', problem: 'Launching to everyone skips a test, so the team will not know if the feature helped.', fix: 'Launch as an A/B test to a share of users and decide on rollout from the primary metric.' }
+    ],
+    questions: [
+      'What do new users with no purchase history see?',
+      'What counts as an item they "usually buy": bought twice, three times, in the last month?',
+      'Does "Add all" add 20 items at once, and can it be undone?',
+      'Do we need a model at all, or does a frequency rule do the job for version one?',
+      'How will we know at launch that lists got faster?',
+      'Is there a non-goal list? Should discovery be out of scope?'
+    ],
+    rewrite: 'Regular Pantry users rebuild a similar weekly list from scratch, which takes [current time] on average and is the most common complaint in [source]. We want returning users with at least [n] past lists to finish their weekly list in [target time] or less, without lowering how many items they keep on the list.'
+  };
+
+  var SYSTEM = 'You are a senior engineering lead and product reviewer. You review product specs before refinement. Be direct, specific and fair. Never invent facts about the product. Every issue must quote the exact text from the spec it is about, copied character for character. Return only JSON, with no prose before or after it.';
+  var SCHEMA = '{"scores":[{"name":"Problem clarity|Users and context|Solution fit|Measurability|Scope and edge cases|Buildability","score":1-5,"reason":"one sentence"}],"issues":[{"severity":"high|medium|low","section":"heading of the section","quote":"exact text copied from the spec","problem":"what is wrong","fix":"a concrete fix, use [brackets] for numbers the author must supply"}],"questions":["questions engineers and designers will ask"],"rewrite":"the problem statement rewritten in 2 to 3 sentences, with [brackets] for unknown numbers"}';
+
+  // ---------- instant lint
+  var SECTIONS = [['Problem or background', /(^|\n)#+\s*(problem|background|context|why)/i], ['Users or audience', /(^|\n)#+\s*(users?|audience|personas?|customers?|who)/i], ['Success metrics', /(^|\n)#+\s*(success|metrics?|kpis?|measur)/i], ['Non-goals or out of scope', /(^|\n)#+\s*(non-?goals?|out of scope|not in scope)/i], ['Risks or open questions', /(^|\n)#+\s*(risks?|open questions?|assumptions?|dependencies)/i], ['Requirements or acceptance criteria', /(^|\n)#+\s*(requirements?|acceptance|scope|user stories)/i]];
+  var VAGUE = ['intuitive', 'seamless', 'easy', 'easier', 'simple', 'fast', 'faster', 'instantly', 'user-friendly', 'robust', 'accurate', 'love', 'etc', 'tbd', 'tbc', 'and/or', 'should be', 'as needed', 'engagement'];
+  function lint() {
+    var t = $('spec').value, words = (t.match(/\S+/g) || []).length; $('wc').textContent = words ? words + ' words' : '';
+    if (!words) { $('lint').innerHTML = '<p class="empty">Paste a spec or load the sample.</p>'; return; }
+    var out = SECTIONS.map(function (s) { var ok = s[1].test(t); return '<div class="' + (ok ? 'ok' : 'no') + '"><i>' + (ok ? '✓' : '✗') + '</i><span>' + s[0] + (ok ? '' : ' is missing') + '</span></div>'; });
+    var found = {}; VAGUE.forEach(function (w) { var m = t.match(new RegExp('\\b' + w.replace('/', '\\/') + '\\b', 'gi')); if (m) found[w] = m.length; });
+    var vk = Object.keys(found);
+    out.push('<div class="' + (vk.length ? 'mid' : 'ok') + '"><i>' + (vk.length ? '!' : '✓') + '</i><span>' + (vk.length ? 'Vague words that hide a decision: ' + vk.map(function (w) { return '<mark>' + esc(w) + '</mark>' + (found[w] > 1 ? ' ×' + found[w] : ''); }).join(', ') : 'No vague words found') + '</span></div>');
+    var metricSec = (t.split(/\n#+\s*(?:success|metrics?|kpis?)[^\n]*\n/i)[1] || '').split(/\n#/)[0];
+    if (metricSec) { var hasNum = /\d|\[[^\]]+\]/.test(metricSec); out.push('<div class="' + (hasNum ? 'ok' : 'no') + '"><i>' + (hasNum ? '✓' : '✗') + '</i><span>' + (hasNum ? 'Success metrics include a number or a placeholder' : 'Success metrics have no numbers or targets') + '</span></div>'); }
+    var bullets = (t.match(/(^|\n)\s*([-*]|\d+\.)\s+/g) || []).length;
+    out.push('<div class="' + (bullets >= 3 ? 'ok' : 'mid') + '"><i>' + (bullets >= 3 ? '✓' : '!') + '</i><span>' + bullets + ' list items (requirements, criteria or metrics)</span></div>');
+    $('lint').innerHTML = out.join('');
+  }
+  $('spec').addEventListener('input', lint);
+  $('load-sample').addEventListener('click', function () { $('spec').value = SAMPLE; lint(); });
+  $('clear').addEventListener('click', function () { $('spec').value = ''; lint(); $('out').hidden = $('out2').hidden = true; });
+
+  // ---------- mode and key
+  var mode = 'demo';
+  try { var k = sessionStorage.getItem('sc-key'); if (k) { $('key').value = k; $('remember').checked = true; } } catch (e) {}
+  document.querySelector('[data-mode]').parentNode.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-mode]'); if (!b) return; mode = b.getAttribute('data-mode');
+    document.querySelectorAll('[data-mode]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+    $('live-box').hidden = mode !== 'live'; $('demo-note').hidden = mode !== 'demo';
+  });
+  function saveKey() { try { if ($('remember').checked) sessionStorage.setItem('sc-key', $('key').value.trim()); else sessionStorage.removeItem('sc-key'); } catch (e) {} }
+  $('remember').addEventListener('change', saveKey);
+
+  // ---------- run
+  $('go').addEventListener('click', function () {
+    var t = $('spec').value.trim();
+    if (mode === 'demo') {
+      if (t !== SAMPLE.trim()) { $('spec').value = SAMPLE; lint(); toast('Demo mode reviews the sample spec. Loaded it.'); }
+      render(DEMO, 'Demo: a stored review of the sample spec, written in advance. Not a live model call.');
+      return;
+    }
+    if (t.length < 80) { toast('Paste a longer spec first'); return; }
+    var key = $('key').value.trim(); if (!key) { toast('Add your Claude API key'); $('key').focus(); return; }
+    saveKey();
+    var btn = $('go'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Reviewing…';
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: $('model').value, max_tokens: 4000, system: SYSTEM, messages: [{ role: 'user', content: 'Review this spec. Score each of the six dimensions from 1 (poor) to 5 (strong). List 5 to 10 issues, most severe first. Give 4 to 8 questions. Reply with JSON in exactly this shape:\n' + SCHEMA + '\n\n<spec>\n' + t + '\n</spec>' }] })
+    }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error((j.error && j.error.message) || ('HTTP ' + r.status)); return j; }); })
+      .then(function (j) {
+        var txt = (j.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('');
+        var a = txt.indexOf('{'), b = txt.lastIndexOf('}'); if (a < 0 || b < a) throw new Error('The model did not return JSON. Try again.');
+        var data = JSON.parse(txt.slice(a, b + 1));
+        if (!Array.isArray(data.scores) || !Array.isArray(data.issues)) throw new Error('The reply was missing scores or issues. Try again.');
+        render(data, 'Live AI review by ' + $('model').selectedOptions[0].textContent + '. AI can be wrong: check each point against your spec.');
+      })
+      .catch(function (e) { toast(/fetch/i.test(e.message) ? 'Could not reach the API. Check your connection.' : e.message); })
+      .then(function () { btn.disabled = false; btn.textContent = 'Review spec'; });
+  });
+
+  // ---------- render
+  var LAST = null, filt = 'all';
+  var norm = function (s) { return String(s || '').replace(/\s+/g, ' ').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").trim().toLowerCase(); };
+  function render(d, label) {
+    LAST = d; var spec = norm($('spec').value);
+    d.issues.forEach(function (i) { i.found = !!i.quote && spec.indexOf(norm(i.quote).replace(/^- /, '')) >= 0; });
+    $('out-label').textContent = label; $('out').hidden = $('out2').hidden = false;
+    var sc = d.scores.map(function (s) { return Math.max(1, Math.min(5, +s.score || 1)); }), avg = sc.reduce(function (a, b) { return a + b; }, 0) / sc.length;
+    $('ov').textContent = avg.toFixed(1);
+    $('ov-t').textContent = avg >= 4 ? 'Ready for refinement' : avg >= 3 ? 'Close. Fix the high issues first.' : 'Not ready for engineering';
+    var hi = d.issues.filter(function (i) { return i.severity === 'high'; }).length;
+    $('ov-s').textContent = 'Average of six scores out of 5. ' + d.issues.length + ' issues, ' + hi + ' high.';
+    $('scores').innerHTML = d.scores.map(function (s, i) { var v = sc[i], col = v >= 4 ? '#2e7d32' : v === 3 ? '#ef6c00' : '#c62828'; return '<div class="score"><span>' + esc(s.name) + '</span><span class="t"><i style="width:' + v * 20 + '%;background:' + col + '"></i></span><span class="n">' + v + '/5</span><small>' + esc(s.reason) + '</small></div>'; }).join('');
+    drawIssues();
+    $('qs').innerHTML = (d.questions || []).map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('');
+    $('rw').textContent = d.rewrite || '';
+    if (window.innerWidth < 900) $('out').scrollIntoView({ behavior: 'smooth' });
+  }
+  function drawIssues() {
+    var L = LAST.issues.filter(function (i) { return filt === 'all' || i.severity === filt; });
+    $('ic').textContent = LAST.issues.length + ' found';
+    $('issues').innerHTML = L.length ? L.map(function (i) {
+      var sev = ['high', 'medium', 'low'].indexOf(i.severity) >= 0 ? i.severity : 'low';
+      return '<div class="issue ' + sev + '"><div class="h"><span class="sev ' + sev + '">' + sev + '</span><b>' + esc(i.section) + '</b>' + (i.found ? '' : '<span class="qf">Quote not found in spec</span>') + '</div><q>' + esc(i.quote) + '</q><p>' + esc(i.problem) + '</p><p class="fix"><b>Fix:</b> ' + esc(i.fix) + '</p></div>';
+    }).join('') : '<p class="empty">No ' + filt + ' issues.</p>';
+  }
+  $('flt').addEventListener('click', function (e) { var b = e.target.closest('[data-f]'); if (!b || !LAST) return; filt = b.getAttribute('data-f'); document.querySelectorAll('[data-f]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); drawIssues(); });
+  $('copy').addEventListener('click', function () {
+    if (!LAST) return; var d = LAST;
+    var md = '# Spec review\n\n' + $('out-label').textContent + '\n\n## Scores\n\n' + d.scores.map(function (s) { return '- ' + s.name + ': ' + s.score + '/5. ' + s.reason; }).join('\n') + '\n\n## Issues\n\n' + d.issues.map(function (i, n) { return (n + 1) + '. **' + i.severity + ', ' + i.section + '**: "' + i.quote + '"' + (i.found ? '' : ' (quote not found in spec)') + '\n   ' + i.problem + '\n   Fix: ' + i.fix; }).join('\n') + '\n\n## Questions\n\n' + (d.questions || []).map(function (q) { return '- ' + q; }).join('\n') + '\n\n## Problem statement, rewritten\n\n' + (d.rewrite || '') + '\n';
+    (navigator.clipboard ? navigator.clipboard.writeText(md) : Promise.reject()).then(function () { toast('Copied'); }, function () { toast('Could not copy'); });
+  });
+  lint();
+})();
+</script>
+</body>
+</html>
