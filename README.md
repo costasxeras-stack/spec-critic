@@ -55,9 +55,9 @@ No usage data yet. These are the measures I would track, with targets to set aft
 2. Let users mark an issue as wrong, to measure precision
 3. Compare scores before and after edits to the same spec
 
-## How it was built
+## My role
 
-I framed the problem, made the product calls and wrote the conclusions. Claude (Anthropic) was my engineering partner for the code. 
+I framed the problem, made the product calls and wrote the conclusions. 
 
 ## Run it yourself
 
