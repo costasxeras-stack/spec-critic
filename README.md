@@ -2,7 +2,7 @@
 
 **An AI reviewer for product specs: scores, issues tied to exact lines, refinement questions and a rewritten problem statement.**
 
-**Current version:** 0.1.0
+**Current version:** 0.2.0
 
 Live: https://kostasxeras.com/spec-critic/
 

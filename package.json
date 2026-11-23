@@ -1,6 +1,6 @@
 {
   "name": "spec-critic",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An AI reviewer for product specs: scores, issues tied to exact lines, refinement questions and a rewritten problem statement.",
   "private": true,
   "scripts": {

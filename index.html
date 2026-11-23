@@ -5,61 +5,88 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spec Critic · an AI reviewer for product specs</title>
 <meta name="description" content="Paste a product spec and get the review a sharp engineering lead would give: scores, issues tied to exact lines, questions to answer and a rewrite of the problem statement. Uses your own Claude API key, or a labelled demo.">
-<meta name="theme-color" content="#ad1457">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ad1457'/%3E%3Cpath d='M9 8h11l4 4v12H9z' fill='white'/%3E%3Cpath d='M12 16l3 3 6-6' stroke='%23ad1457' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#23262b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c8102e'/%3E%3Cpath d='M9 8h11l4 4v12H9z' fill='white'/%3E%3Cpath d='M12 16l3 3 6-6' stroke='%23c8102e' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css?v=1">
 <style>
-:root{--accent:#ad1457;--soft:#fce4ec}
-.intro .kicker{font:600 12.5px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-.lay{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+:root{--bg:#dce2e6;--card:#fff;--ink:#23262b;--muted:#545b63;--faint:#858c94;--line:#c9d1d7;--accent:#c8102e;--soft:#fbe3e6;--hl:#fff07a;--warn:#c8102e;--warnsoft:#fbe3e6;--display:"Schibsted Grotesk",system-ui,sans-serif;--body:"Schibsted Grotesk",system-ui,sans-serif;--doc:"Source Serif 4",Georgia,serif;--r:6px}
+body{background:var(--bg)}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.01em;font-weight:700}
+:focus-visible{outline:3px solid var(--accent)!important;outline-offset:2px}
+.wrap{max-width:1120px}
+header.top{background:var(--ink);border:0}
+.brand{color:#fff;font:700 19px var(--display)}
+.brand i{background:var(--accent);border-radius:4px}
+.top nav a{color:#c4cad0}.top nav a:hover{color:#fff}
+.intro{padding:30px 0 14px}
+.intro .kicker{display:none}
+.intro h1{font-size:clamp(28px,4.2vw,44px);line-height:1.06;font-weight:800;max-width:22ch}
+.intro p{font-size:17px;max-width:68ch;color:var(--muted)}
+.card{border-radius:var(--r);border:0;box-shadow:0 1px 2px rgba(35,38,43,.12)}
+.card h2{font-size:20px}
+.card h2 small{font:500 13.5px var(--body)}
+.btn{border-radius:4px;border-color:var(--line)}
+.btn.primary{background:var(--accent);border-color:var(--accent)}
+.seg{border-radius:4px;border-color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink)}
+input[type=password],select{border-radius:4px}
+.lay{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;align-items:start}
 .lay>.card{margin-top:0}
-textarea#spec{min-height:520px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
+/* the paper */
+.paper{padding:26px 28px}
+textarea#spec{min-height:560px;font:17px/1.7 var(--doc);border:0;border-top:1px solid var(--line);border-radius:0;padding:16px 2px 0;background:transparent;color:var(--ink);resize:vertical}
+textarea#spec:focus{outline:none}
 .keyrow{display:grid;grid-template-columns:1fr 200px;gap:8px}
-.score{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;font-size:14px;margin-top:8px}
-.score .t{height:12px;border-radius:6px;background:#eeebe5;overflow:hidden}
+/* the grade */
+.overall{display:flex;gap:22px;align-items:center}
+.overall b{flex:none;font:800 50px/1 var(--display);color:var(--accent);width:118px;height:118px;display:grid;place-items:center;border:4px solid var(--accent);border-radius:50% 46% 52% 48%;transform:rotate(-7deg);box-shadow:0 0 0 3px #fff,0 0 0 5px rgba(200,16,46,.45)}
+.overall #ov-t{font:700 20px/1.2 var(--display);color:var(--accent)}
+.score{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;font-size:14.5px;margin-top:10px}
+.score .t{height:10px;border-radius:2px;background:#e7ebee;overflow:hidden}
 .score .t i{display:block;height:100%}
-.score .n{font-weight:700;text-align:right}
-.score small{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:-4px}
-.overall{display:flex;gap:16px;align-items:center}
-.overall b{font:700 54px/1 var(--display);color:var(--accent)}
-.issue{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;border-left:5px solid}
-.issue.high{border-left-color:#c62828}.issue.medium{border-left-color:#ef6c00}.issue.low{border-left-color:#8d8478}
-.issue .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
-.issue q{display:block;background:#faf8f4;border-radius:8px;padding:6px 10px;margin:8px 0;font-size:13.5px;quotes:none;font-family:ui-monospace,Menlo,monospace}
-.issue p{margin:6px 0 0;font-size:14.5px}
-.issue .fix{color:#2e7d32}
-.sev{font:600 11.5px var(--body);text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:2px 8px;color:#fff}
-.sev.high{background:#c62828}.sev.medium{background:#ef6c00}.sev.low{background:#8d8478}
-.qf{font-size:12px;font-weight:600;color:#c62828}
+.score .n{font-weight:800;text-align:right}
+.score small{grid-column:1/-1;color:var(--muted);font-size:13.5px;margin-top:-4px}
+.banner{background:#f1f3f5;color:var(--muted);border-radius:4px}
+.issue{border:0;border-radius:0;padding:14px 0 14px 18px;margin-top:0;border-left:4px solid;border-bottom:1px solid #e7ebee}
+.issue.high{border-left-color:var(--accent)}.issue.medium{border-left-color:#e07b00}.issue.low{border-left-color:#9aa1a8}
+.issue .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px}
+.issue q{display:inline;background:var(--hl);padding:2px 4px;margin:0;font:16px/1.75 var(--doc);quotes:none;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.issue q::before{content:""}
+.issue .h + q{margin-top:8px}
+.issue p{margin:8px 0 0;font-size:15px}
+.issue .fix{color:#1f7a3d}
+.sev{font:700 12px var(--body);border-radius:3px;padding:2px 8px;color:#fff}
+.sev.high{background:var(--accent)}.sev.medium{background:#e07b00}.sev.low{background:#9aa1a8}
+.qf{font-size:12.5px;font-weight:700;color:var(--accent)}
 .lint{display:grid;gap:6px;margin-top:8px}
-.lint div{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:14px}
-.lint i{font-style:normal;font-weight:700}
-.lint .ok i{color:#2e7d32}.lint .no i{color:#c62828}.lint .mid i{color:#ef6c00}
-mark{background:#ffe0b2;border-radius:3px;padding:0 2px}
+.lint div{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:14.5px}
+.lint i{font-style:normal;font-weight:800}
+.lint .ok i{color:#1f7a3d}.lint .no i{color:var(--accent)}.lint .mid i{color:#e07b00}
+mark{background:var(--hl);border-radius:2px;padding:0 2px}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-3px}
 @keyframes s{to{transform:rotate(360deg)}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.rewrite{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:15px;margin-top:8px}
+.rewrite{background:#fff;border-left:4px solid var(--ink);padding:12px 16px;font:17px/1.65 var(--doc);margin-top:8px}
+footer{background:none;border-top:1px solid var(--line)}
 @media (max-width:900px){.lay{grid-template-columns:1fr}textarea#spec{min-height:320px}}
-@media (max-width:600px){.keyrow{grid-template-columns:1fr}.score{grid-template-columns:110px 1fr 30px}}
+@media (max-width:600px){.keyrow{grid-template-columns:1fr}.score{grid-template-columns:110px 1fr 30px}.paper{padding:18px 16px}.overall b{width:92px;height:92px;font-size:40px}}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <a class="brand" href="./"><i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h6l2 2v8H4z" fill="white"/><path d="M6 8.5l1.5 1.5 3-3" stroke="#ad1457" stroke-width="1.5" fill="none"/></svg></i>Spec Critic</a>
+  <a class="brand" href="./"><i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h6l2 2v8H4z" fill="white"/><path d="M6 8.5l1.5 1.5 3-3" stroke="#c8102e" stroke-width="1.5" fill="none"/></svg></i>Spec Critic</a>
   <nav><a class="hide-sm" href="https://github.com/costasxeras-stack/spec-critic">GitHub</a><a href="https://kostasxeras.com/">Portfolio</a></nav>
 </div></header>
 <main class="wrap">
   <section class="intro">
-    <span class="kicker">AI product · spec review</span>
-    <h1>The review your spec gets before engineering sees it.</h1>
+        <h1>The review your spec gets before engineering sees it.</h1>
     <p>Paste a product spec. Spec Critic scores it on six things engineers and designers need, ties every issue to the exact line it is about, and lists the questions you will be asked in refinement. A rules-based check runs instantly in your browser. The AI review uses your own Claude API key.</p>
   </section>
 
   <div class="lay">
-    <section class="card">
+    <section class="card paper">
       <h2>Your spec</h2>
       <div class="row" style="margin-top:0"><button class="btn small" type="button" id="load-sample">Load sample spec</button><button class="btn small ghost" type="button" id="clear">Clear</button><span class="note" id="wc" style="margin:0"></span></div>
       <label for="spec" class="sr">Spec text</label>
@@ -114,7 +141,7 @@ mark{background:#ffe0b2;border-radius:3px;padding:0 2px}
   </section>
 </main>
 <div class="toast" id="toast" role="status"></div>
-<footer><div class="wrap"><span>Spec Critic v0.1.0 by <a href="https://kostasxeras.com/">Konstantinos Xeras</a>. <a href="https://github.com/costasxeras-stack/spec-critic">Code and decisions on GitHub</a>.</span></div></footer>
+<footer><div class="wrap"><span>Spec Critic v0.2.0 by <a href="https://kostasxeras.com/">Konstantinos Xeras</a>. <a href="https://github.com/costasxeras-stack/spec-critic">Code and decisions on GitHub</a>.</span></div></footer>
 
 <script>
 (function () {
@@ -243,7 +270,7 @@ mark{background:#ffe0b2;border-radius:3px;padding:0 2px}
   });
 
   // ---------- render
-  var LAST = null, filt = 'all';
+  var LAST = null, filt = 'all', QUIET = false;
   var norm = function (s) { return String(s || '').replace(/\s+/g, ' ').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").trim().toLowerCase(); };
   function render(d, label) {
     LAST = d; var spec = norm($('spec').value);
@@ -258,7 +285,7 @@ mark{background:#ffe0b2;border-radius:3px;padding:0 2px}
     drawIssues();
     $('qs').innerHTML = (d.questions || []).map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('');
     $('rw').textContent = d.rewrite || '';
-    if (window.innerWidth < 900) $('out').scrollIntoView({ behavior: 'smooth' });
+    if (window.innerWidth < 900 && !QUIET) $('out').scrollIntoView({ behavior: 'smooth' });
   }
   function drawIssues() {
     var L = LAST.issues.filter(function (i) { return filt === 'all' || i.severity === filt; });
@@ -275,6 +302,8 @@ mark{background:#ffe0b2;border-radius:3px;padding:0 2px}
     (navigator.clipboard ? navigator.clipboard.writeText(md) : Promise.reject()).then(function () { toast('Copied'); }, function () { toast('Could not copy'); });
   });
   lint();
+  // Open with the sample spec and the stored demo review, so the page shows its output at once
+  if (!$('spec').value.trim()) { QUIET = true; $('spec').value = SAMPLE; lint(); $('go').click(); QUIET = false; }
 })();
 </script>
 </body>
